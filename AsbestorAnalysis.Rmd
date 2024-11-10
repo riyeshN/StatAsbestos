@@ -1,0 +1,73 @@
+---
+title: "AsbestosAnalysis"
+author: "Riyesh Nath, Kazaf Chan and Dennis..."
+date: "`r Sys.Date()`"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r}
+library(dplyr)
+library(ggplot2)
+
+filterFileToGetRidOfColumns <- function(file_location, file_name, list_of_columns_to_remove){
+  file_path <- file.path(file_location, file_name)
+  data <- read.csv(file_path);
+  
+  if (!is.null(list_of_columns_to_remove) && length(list_of_columns_to_remove) > 0) {
+    for (col in names(list_of_columns_to_remove)) {
+      if (col %in% names(data)) {
+        values_to_remove <- list_of_columns_to_remove[[col]]
+        
+        data <- data[!data[[col]] %in% values_to_remove, ]
+      } else {
+        cat("Warning: Column", col, "does not exist in the dataset.\n")
+      }
+    }
+  }
+  return (data);
+
+}
+
+```
+
+```{r}
+plot_boxplot <- function(data, x_val, y_val, use_log_scale=FALSE) {
+  
+  plot <- ggplot(data, aes(x = .data[[x_val]], y = .data[[y_val]])) +
+    geom_boxplot() +
+    theme_minimal() +
+    labs(
+      title = sprintf("Boxplot of %s by %s", y_val, x_val),
+      x = x_val,
+      y = y_val
+    )
+  
+  # Apply log scale given that the use_log_scale is TRUE default is FALSE
+  if (use_log_scale) {
+    plot <- plot + scale_y_log10() +
+      labs(y = sprintf("%s (log scale)", y_val))
+  }
+  
+  return(plot)
+}
+
+```
+
+```{r}
+# change this to filter out values
+filters <- list(
+  STREET_ACTIVITY = c("Yes")
+)
+
+filtered_data <- filterFileToGetRidOfColumns(
+    file_location = "data/",
+    file_name = "Asbestos_Control_Program__ACP7__20241103.csv", 
+    list_of_columns_to_remove = filters
+  )
+
+plot_boxplot(data = filtered_data, x_val = "BOROUGH", y_val = "ACM_AMOUNT", use_log_scale = TRUE)
+plot_boxplot(data = filtered_data, x_val = "FACILITY_TYPE", y_val = "ACM_AMOUNT", use_log_scale = TRUE)
+```
+
