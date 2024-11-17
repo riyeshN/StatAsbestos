@@ -112,9 +112,9 @@ filtered_data <- filterFileToGetRidOfColumns(
     file_name = "Asbestos_Control_Program__ACP7__20241103.csv", 
     list_of_columns_to_remove = filters
   )
-print(filtered_data)
+
 plot_boxplot(data = filtered_data, x_val = "BOROUGH", y_val = "ACM_AMOUNT", use_log_scale = TRUE)
 plot_boxplot(data = filtered_data, x_val = "FACILITY_TYPE", y_val = "ACM_AMOUNT", use_log_scale = TRUE)
-get_geographic_heatmap_of_acm(data = filtered_data, shape_file_path = "data/mapData.csv")
+#get_geographic_heatmap_of_acm(data = filtered_data, shape_file_path = "data/mapData.csv")
 ```
 
