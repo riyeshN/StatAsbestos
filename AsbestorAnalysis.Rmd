@@ -35,7 +35,7 @@ filterFileToGetRidOfColumns <- function(file_location, file_name, list_of_column
 ```{r}
 plot_boxplot <- function(data, x_val, y_val, use_log_scale=FALSE) {
   
-  plot <- ggplot(data, aes(x = .data[[x_val]], y = .data[[y_val]])) +
+  plot <- ggplot(data, aes(x = as.factor(.data[[x_val]]), y = .data[[y_val]])) +
     geom_boxplot() +
     theme_minimal() +
     labs(
@@ -56,9 +56,55 @@ plot_boxplot <- function(data, x_val, y_val, use_log_scale=FALSE) {
 ```
 
 ```{r}
+library(ggplot2)
+library(sf)
+library(dplyr)
+
+get_geographic_heatmap_of_acm <- function(data, shape_file_path) {
+  # Load the map data and convert to spatial object
+  nyc_zip_shapes <- read.csv(shape_file_path) %>%
+    st_as_sf(wkt = "the_geom", crs = 4326) # Use the_geom as WKT (Well-Known Text) geometry
+  
+  # Clean and prepare ACM data
+  clean_data <- data %>%
+    filter(!is.na(ZIP_CODE), !is.na(ACM_AMOUNT)) %>%
+    mutate(
+      ZIP_CODE = as.character(ZIP_CODE), # Ensure ZIP_CODE is a character
+      ACM_AMOUNT = as.numeric(ACM_AMOUNT) # Ensure ACM_AMOUNT is numeric
+    ) %>%
+    group_by(ZIP_CODE) %>%
+    summarize(Total_ACM_Amount = sum(ACM_AMOUNT, na.rm = TRUE)) %>%
+    ungroup()
+  
+  nyc_zip_shapes <- nyc_zip_shapes %>%
+    rename(ZIP_CODE = MODZCTA) %>%
+    mutate(ZIP_CODE = as.character(ZIP_CODE)) # Ensure ZIP_CODE is a character
+  
+  # Merge ACM data with map data
+  merged_data <- nyc_zip_shapes %>%
+    left_join(clean_data, by = "ZIP_CODE")
+  
+  # Create the heatmap
+  heatmap_plot <- ggplot(data = merged_data) +
+    geom_sf(aes(fill = Total_ACM_Amount), color = "white") +
+    scale_fill_gradient(low = "blue", high = "red", na.value = "grey") +
+    theme_minimal() +
+    labs(
+      title = "Geographic Heatmap of ACM Amount by NYC ZIP Code",
+      fill = "Total ACM Amount"
+    )
+  
+  # Print the heatmap
+  print(heatmap_plot)
+}
+
+```
+
+```{r}
 # change this to filter out values
 filters <- list(
-  STREET_ACTIVITY = c("Yes")
+  STREET_ACTIVITY = c("Yes"),
+  FACILITY_TYPE = c("")
 )
 
 filtered_data <- filterFileToGetRidOfColumns(
@@ -66,8 +112,9 @@ filtered_data <- filterFileToGetRidOfColumns(
     file_name = "Asbestos_Control_Program__ACP7__20241103.csv", 
     list_of_columns_to_remove = filters
   )
-
+print(filtered_data)
 plot_boxplot(data = filtered_data, x_val = "BOROUGH", y_val = "ACM_AMOUNT", use_log_scale = TRUE)
 plot_boxplot(data = filtered_data, x_val = "FACILITY_TYPE", y_val = "ACM_AMOUNT", use_log_scale = TRUE)
+get_geographic_heatmap_of_acm(data = filtered_data, shape_file_path = "data/mapData.csv")
 ```
 
